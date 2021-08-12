@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changelogs/3-feature_staff-login.xml
   - include:
       file: db/changelog/changelogs/4-feature_leaderboard-seperation.xml
+  - include:
+      file: db/changelog/changelogs/5-feature_ap_player_curves.xml

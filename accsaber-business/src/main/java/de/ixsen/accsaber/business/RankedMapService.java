@@ -103,15 +103,7 @@ public class RankedMapService {
 
         song = this.songService.saveSong(song);
 
-        List<ScoreData> nowRankedScores = this.scoreDataRepository.findAllByLeaderboardId(beatMap.getLeaderboardId());
-        nowRankedScores.forEach(score -> {
-            score.setBeatMap(beatMap);
-            score.setAccuracy(score.getScore() / (double) beatMap.getMaxScore());
-            double ap = APUtils.calculateApByAcc(score.getAccuracy(), beatMap.getComplexity());
-            score.setAp(ap);
-            score.setRankedScore(true);
-        });
-        this.scoreDataRepository.saveAll(nowRankedScores);
+        this.scoreDataRepository.rankScores(leaderBoardId, beatMap.getMaxScore(), complexity);
     }
 
     public void removeRankedMap(Long leaderboardId) {

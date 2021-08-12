@@ -42,7 +42,6 @@ public class RankedMapsController {
     @PostMapping
     public ResponseEntity<?> addNewRankedMap(@RequestBody CreateRankedMapDto rankedMapDto) {
         this.rankedMapService.addNewRankedMap(rankedMapDto.getSongHash(), rankedMapDto.getLeaderboardId(), rankedMapDto.getDifficulty(), rankedMapDto.getComplexity(), rankedMapDto.getCategoryName());
-        this.playerService.recalculateApForAllPlayers();
         return ResponseEntity.noContent().build();
     }
 

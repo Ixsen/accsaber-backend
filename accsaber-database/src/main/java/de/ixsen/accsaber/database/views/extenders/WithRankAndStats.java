@@ -9,15 +9,8 @@ import javax.persistence.MappedSuperclass;
 public abstract class WithRankAndStats extends WithRank {
 
     private Double averageAcc;
-
-    private Double ap;
     private Double averageApPerMap;
-
     private int rankedPlays;
-
-    public Double getAp() {
-        return this.ap;
-    }
 
     public Double getAverageApPerMap() {
         return this.averageApPerMap;

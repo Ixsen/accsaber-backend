@@ -3,6 +3,7 @@ package de.ixsen.accsaber.api.dtos;
 public class PlayerScoreDto {
     private long rank;
     private double ap;
+    private double weightedAp;
     private long score;
     private double accuracy;
 
@@ -18,6 +19,8 @@ public class PlayerScoreDto {
 
     private String timeSet;
 
+    private String categoryDisplayName;
+
     public long getRank() {
         return this.rank;
     }
@@ -32,6 +35,14 @@ public class PlayerScoreDto {
 
     public void setAp(double ap) {
         this.ap = ap;
+    }
+
+    public double getWeightedAp() {
+        return this.weightedAp;
+    }
+
+    public void setWeightedAp(double weightedAp) {
+        this.weightedAp = weightedAp;
     }
 
     public long getScore() {
@@ -115,10 +126,18 @@ public class PlayerScoreDto {
     }
 
     public String getSongHash() {
-        return songHash;
+        return this.songHash;
     }
 
     public void setSongHash(String songHash) {
         this.songHash = songHash;
+    }
+
+    public String getCategoryDisplayName() {
+        return this.categoryDisplayName;
+    }
+
+    public void setCategoryDisplayName(String categoryDisplayName) {
+        this.categoryDisplayName = categoryDisplayName;
     }
 }

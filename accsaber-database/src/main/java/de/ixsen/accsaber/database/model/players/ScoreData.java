@@ -1,10 +1,7 @@
 package de.ixsen.accsaber.database.model.players;
 
-
 import de.ixsen.accsaber.database.model.maps.BeatMap;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.envers.Audited;
-import org.hibernate.envers.NotAudited;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -17,42 +14,34 @@ import javax.persistence.OrderBy;
 import java.time.Instant;
 
 @Entity
-@Audited
 public class ScoreData {
 
     @Id
-    @Audited
     private Long scoreId;
 
     private int rankWhenScoresSet;
 
-    @Audited
     private int score;
 
-    @Audited
     private int unmodififiedScore;
 
-    @Audited
     private Double accuracy;
 
-    @Audited
     private Double ap;
 
+    private Double weightedAp;
+
     @OrderBy
-    @Audited
     private Instant timeSet;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @NotAudited
     @JoinColumn(insertable = false, updatable = false, name = "map_leaderboard_id", foreignKey = @ForeignKey(name = "none"))
     private BeatMap beatMap;
 
     @Column(name = "map_leaderboard_id")
-    @Audited
     private Long leaderboardId;
 
     @ManyToOne
-    @NotAudited
     @JoinColumn(name = "player_id")
     private PlayerData player;
 
@@ -146,4 +135,14 @@ public class ScoreData {
     public void setRankedScore(boolean rankedScore) {
         this.isRankedScore = rankedScore;
     }
+
+    public Double getWeightedAp() {
+        return this.weightedAp;
+    }
+
+    public void setWeightedAp(Double weightedAp) {
+        this.weightedAp = weightedAp;
+    }
+
+
 }

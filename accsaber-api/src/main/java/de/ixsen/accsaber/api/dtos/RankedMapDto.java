@@ -15,7 +15,7 @@ public class RankedMapDto {
 
     private double complexity;
 
-    private String categoryName;
+    private String categoryDisplayName;
 
     public String getSongName() {
         return this.songName;
@@ -89,11 +89,11 @@ public class RankedMapDto {
         this.complexity = complexity;
     }
 
-    public String getCategoryName() {
-        return this.categoryName;
+    public String getCategoryDisplayName() {
+        return this.categoryDisplayName;
     }
 
-    public void setCategoryName(String categoryName) {
-        this.categoryName = categoryName;
+    public void setCategoryDisplayName(String categoryDisplayName) {
+        this.categoryDisplayName = categoryDisplayName;
     }
 }

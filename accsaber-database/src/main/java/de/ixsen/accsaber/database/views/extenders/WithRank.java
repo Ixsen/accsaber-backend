@@ -8,8 +8,13 @@ import javax.persistence.MappedSuperclass;
 @Immutable
 public abstract class WithRank {
     private Long ranking;
+    private Double ap;
 
     public Long getRanking() {
-        return ranking;
+        return this.ranking;
+    }
+
+    public Double getAp() {
+        return this.ap;
     }
 }

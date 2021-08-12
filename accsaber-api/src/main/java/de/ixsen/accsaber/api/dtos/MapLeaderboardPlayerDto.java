@@ -91,7 +91,7 @@ public class MapLeaderboardPlayerDto {
     }
 
     public String getCategoryName() {
-        return categoryName;
+        return this.categoryName;
     }
 
     public void setCategoryName(String categoryName) {

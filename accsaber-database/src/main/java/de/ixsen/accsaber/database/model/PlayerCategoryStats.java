@@ -4,18 +4,23 @@ import de.ixsen.accsaber.database.model.players.PlayerData;
 import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.IdClass;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 
 @Entity
-public class PlayerCategoryStats extends BaseEntity {
+@IdClass(PlayerCategoryStatsPK.class)
+public class PlayerCategoryStats {
 
     @ManyToOne
     @JoinColumn(name = "player_id")
+    @Id
     private PlayerData player;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
+    @Id
     private Category category;
 
     @ColumnDefault("0")

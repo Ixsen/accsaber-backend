@@ -21,6 +21,7 @@ public interface ScoreMapper {
     @Mapping(target = "levelAuthorName", source = "beatMap.song.levelAuthorName")
     @Mapping(target = "difficulty", source = "beatMap.difficulty")
     @Mapping(target = "beatsaverKey", source = "beatMap.song.beatSaverKey")
+    @Mapping(target = "categoryDisplayName", source = "beatMap.category.categoryDisplayName")
     PlayerScoreDto rankedScoreToPlayerScore(AccSaberScore accSaberScore);
 
     ArrayList<PlayerScoreDto> rankedScoresToPlayerScores(List<AccSaberScore> accSaberScores);

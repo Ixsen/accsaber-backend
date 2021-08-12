@@ -1,0 +1,283 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+  <changeSet author="ixsen (generated)" id="1628412651566-5">
+    <createIndex indexName="IX_player_category_statsPK" tableName="player_category_stats" unique="true">
+      <column name="category_id"/>
+      <column name="player_id"/>
+    </createIndex>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628412651566-3">
+    <dropPrimaryKey tableName="player_category_stats"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628412651566-6">
+    <dropColumn columnName="id" tableName="player_category_stats"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628412651566-1">
+    <addNotNullConstraint columnDataType="bigint" columnName="category_id" tableName="player_category_stats" validate="true"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628412651566-2">
+    <addNotNullConstraint columnDataType="bigint" columnName="player_id" tableName="player_category_stats" validate="true"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628412651566-4">
+    <addPrimaryKey columnNames="category_id, player_id" constraintName="player_category_statsPK" tableName="player_category_stats"/>
+  </changeSet>
+
+  <changeSet id="add-stored-routines" author="ixsen">
+    <sql endDelimiter="/">
+      create function calc_weighted_ap(ap DOUBLE, ranking INT, category_id LONG) RETURNS DOUBLE
+      begin
+        select player_curve_y1, player_curve_x1, player_curve_k into @y1, @x1, @k from category c where c.id = category_id;
+        SET @X0 = -(ln((1 - @y1) / (@y1 * exp(@k * @x1) - 1)) / @k);
+        RETURN ap * (1 + exp(-@k * @x0)) / (1 + exp(@k * (ranking - 1 - @x0)));
+      end
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create function calc_ap(accuracy DOUBLE, complexity DOUBLE, category_id LONG) RETURNS DOUBLE
+      begin
+        select ap_curve_a, ap_curve_b, ap_curve_c, ap_curve_d, ap_curve_e
+        into @a, @b,@c,@d, @e
+        from category c
+        where c.id = category_id;
+        RETURN (pow(@a, (pow((accuracy + (complexity / @e)) / @b, @c))) - 1.0) * @d;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_player_ap(id_of_player LONG)
+      begin
+        update score_data sd, (select leaderboard_id, max_score, complexity, category_id from beat_map) map
+        set sd.is_ranked_score = true,
+            sd.accuracy        = (sd.score / map.max_score),
+            sd.ap              = calc_ap((sd.score / map.max_score) * 100.0, complexity, map.category_id)
+        where sd.map_leaderboard_id = map.leaderboard_id
+          and sd.player_id = id_of_player;
+
+        call recalc_weighted_ap_for_player(id_of_player);
+        call recalc_player_category_stats(id_of_player);
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_weighted_ap_for_player(player_id LONG)
+      begin
+        update score_data sd, (select recalced_table.score_id,
+                                      calc_weighted_ap(recalced_table.ap, recalced_table.ranking, recalced_table.category_id) as weighted_ap,
+                                      recalced_table.player_id,
+                                      recalced_table.category_id
+                               from (select *,
+                                            row_number() over (PARTITION BY least(sd.player_id, category_id),greatest(sd.player_id, category_id) order by ap desc ) as ranking
+                                     from score_data sd
+                                            join beat_map bm on sd.map_leaderboard_id = bm.leaderboard_id
+                                     where sd.is_ranked_score
+                                       and sd.player_id = player_id) recalced_table) wt
+        set sd.weighted_ap = wt.weighted_ap
+        where sd.score_id = wt.score_id;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure rank_scores(leaderboard_id LONG, maxScore LONG, complexity DOUBLE)
+      begin
+        select category_id into @category from beat_map bm where bm.leaderboard_id = leaderboard_id;
+
+        update score_data sd
+        set sd.is_ranked_score = true,
+            sd.accuracy        = (sd.score / maxScore),
+            sd.ap              = calc_ap((sd.score / maxScore) * 100.0, complexity, @category)
+        where sd.map_leaderboard_id = leaderboard_id;
+
+        call recalc_weighted_ap(@category);
+        call recalc_all_category_stats();
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_weighted_ap(category LONG)
+      begin
+        update score_data sd, (select recalced_table.score_id,
+                                      calc_weighted_ap(recalced_table.ap, recalced_table.ranking, recalced_table.category_id) as weighted_ap,
+                                      recalced_table.player_id,
+                                      recalced_table.category_id
+                               from (select *,
+                                            row_number() over (PARTITION BY least(sd.player_id, category_id),greatest(sd.player_id, category_id) order by ap desc ) as ranking
+                                     from score_data sd
+                                            join beat_map bm on sd.map_leaderboard_id = bm.leaderboard_id
+                                     where sd.is_ranked_score
+                                       and bm.category_id = category) recalced_table) wt
+        set sd.weighted_ap = wt.weighted_ap
+        where sd.score_id = wt.score_id;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_all_ap()
+      begin
+        update score_data sd, (select leaderboard_id, max_score, complexity, category_id from beat_map) map
+        set sd.is_ranked_score = true,
+            sd.accuracy        = (sd.score / map.max_score),
+            sd.ap              = calc_ap((sd.score / map.max_score) * 100.0, map.complexity, map.category_id)
+        where sd.map_leaderboard_id = map.leaderboard_id;
+
+        call recalc_all_weighted_ap();
+        call recalc_all_category_stats();
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_all_weighted_ap()
+      begin
+        update score_data sd, (select recalced_table.score_id,
+                                      calc_weighted_ap(recalced_table.ap, recalced_table.ranking, recalced_table.category_id) as weighted_ap,
+                                      recalced_table.player_id,
+                                      recalced_table.category_id
+                               from (select *,
+                                            row_number() over (PARTITION BY least(sd.player_id, category_id),greatest(sd.player_id, category_id) order by ap desc ) as ranking
+                                     from score_data sd
+                                            join beat_map bm on sd.map_leaderboard_id = bm.leaderboard_id
+                                     where sd.is_ranked_score) recalced_table) wt
+        set sd.weighted_ap = wt.weighted_ap
+        where sd.score_id = wt.score_id;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+
+      create procedure recalc_player_category_stats(player_id long)
+      begin
+        insert into player_category_stats(ap, average_acc, ranked_plays, category_id, player_id)
+        select *
+        from (select sum(sd.weighted_ap) as ap,
+                     avg(sd.accuracy)    as average_acc,
+                     count(score_id)     as ranked_plays,
+                     bm.category_id,
+                     sd.player_id
+              from score_data sd
+                     join beat_map bm
+                          on sd.map_leaderboard_id = bm.leaderboard_id
+              where is_ranked_score
+                and sd.player_id = player_id
+              group by least(sd.player_id, bm.category_id), greatest(sd.player_id, bm.category_id)) as new_stats
+        on duplicate key update ap          = new_stats.ap,
+                                average_acc=new_stats.average_acc,
+                                ranked_plays=new_stats.ranked_plays;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_player_category_stat(player_id long, category_id long)
+      begin
+        insert into player_category_stats(ap, average_acc, ranked_plays, category_id, player_id)
+        select *
+        from (select sum(sd.weighted_ap) as ap,
+                     avg(sd.accuracy)    as average_acc,
+                     count(score_id)     as ranked_plays,
+                     bm.category_id,
+                     sd.player_id
+              from score_data sd
+                     join beat_map bm
+                          on sd.map_leaderboard_id = bm.leaderboard_id
+              where is_ranked_score
+                and sd.player_id = player_id
+                and bm.category_id = category_id
+              group by least(sd.player_id, bm.category_id), greatest(sd.player_id, bm.category_id)) as new_stats
+        on duplicate key update ap          = new_stats.ap,
+                                average_acc=new_stats.average_acc,
+                                ranked_plays=new_stats.ranked_plays;
+      end;
+
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_specific_category_stats(category_id long)
+      begin
+        insert into player_category_stats(ap, average_acc, ranked_plays, category_id, player_id)
+        select *
+        from (select sum(sd.weighted_ap) as ap,
+                     avg(sd.accuracy)    as average_acc,
+                     count(score_id)     as ranked_plays,
+                     bm.category_id,
+                     sd.player_id
+              from score_data sd
+                     join beat_map bm
+                          on sd.map_leaderboard_id = bm.leaderboard_id
+              where is_ranked_score
+                and bm.category_id = category_id
+              group by least(sd.player_id, bm.category_id), greatest(sd.player_id, bm.category_id)) as new_stats
+        on duplicate key update ap          = new_stats.ap,
+                                average_acc=new_stats.average_acc,
+                                ranked_plays=new_stats.ranked_plays;
+      end;
+      /
+    </sql>
+    <sql endDelimiter="/">
+      create procedure recalc_all_category_stats()
+      begin
+        insert into player_category_stats(ap, average_acc, ranked_plays, category_id, player_id)
+        select *
+        from (select sum(sd.weighted_ap) as ap,
+                     avg(sd.accuracy)    as average_acc,
+                     count(score_id)     as ranked_plays,
+                     bm.category_id,
+                     sd.player_id
+              from score_data sd
+                     join beat_map bm
+                          on sd.map_leaderboard_id = bm.leaderboard_id
+              where is_ranked_score
+              group by least(sd.player_id, bm.category_id), greatest(sd.player_id, bm.category_id)) as new_stats
+        on duplicate key update ap          = new_stats.ap,
+                                average_acc=new_stats.average_acc,
+                                ranked_plays=new_stats.ranked_plays;
+      end;
+      /
+    </sql>
+  </changeSet>
+
+
+  <changeSet author="ixsen (generated)" id="1628769787050-2">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="1.036" name="ap_curve_a" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-3">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="62.0" name="ap_curve_b" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-4">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="10.0" name="ap_curve_c" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-5">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="15.5" name="ap_curve_d" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-6">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="10.0" name="ap_curve_e" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-7">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="0.4" name="player_curve_k" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-8">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="15.0" name="player_curve_x1" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-9">
+    <addColumn tableName="category">
+      <column defaultValueNumeric="0.1" name="player_curve_y1" type="double precision"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-10">
+    <dropUniqueConstraint constraintName="IX_player_category_statsPK" tableName="player_category_stats"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628769787050-1">
+    <dropDefaultValue columnDataType="varchar(255)" columnName="category_display_name" tableName="category"/>
+  </changeSet>
+</databaseChangeLog>

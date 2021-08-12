@@ -22,6 +22,6 @@ public interface RankedMapMapper {
     @Mapping(source = "song.levelAuthorName", target = "levelAuthorName")
     @Mapping(source = "song.beatSaverKey", target = "beatSaverKey")
     @Mapping(source = "leaderboardId", target = "leaderboardId")
-    @Mapping(source = "category.categoryName", target = "categoryName")
+    @Mapping(source = "category.categoryDisplayName", target = "categoryDisplayName")
     RankedMapDto rankedMapToDto(BeatMap beatMap);
 }

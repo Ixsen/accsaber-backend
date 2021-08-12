@@ -3,7 +3,7 @@ package de.ixsen.accsaber.database.views;
 
 import de.ixsen.accsaber.database.model.maps.BeatMap;
 import de.ixsen.accsaber.database.model.players.PlayerData;
-import de.ixsen.accsaber.database.views.extenders.WithRank;
+import de.ixsen.accsaber.database.views.extenders.WithRankAndWeightedAp;
 import org.hibernate.annotations.Immutable;
 
 import javax.persistence.Column;
@@ -17,20 +17,14 @@ import java.time.Instant;
 
 @Entity
 @Immutable
-public class AccSaberScore extends WithRank {
+public class AccSaberScore extends WithRankAndWeightedAp {
 
     @Id
     private Long scoreId;
-
     private int rankWhenScoresSet;
-
     private int score;
-
     private int unmodififiedScore;
-
     private Double accuracy;
-
-    private Double ap;
 
     @OrderBy
     private Instant timeSet;
@@ -47,42 +41,38 @@ public class AccSaberScore extends WithRank {
     private PlayerData player;
 
     public Long getScoreId() {
-        return scoreId;
+        return this.scoreId;
     }
 
     public int getRankWhenScoresSet() {
-        return rankWhenScoresSet;
+        return this.rankWhenScoresSet;
     }
 
     public int getScore() {
-        return score;
+        return this.score;
     }
 
     public int getUnmodififiedScore() {
-        return unmodififiedScore;
+        return this.unmodififiedScore;
     }
 
     public Double getAccuracy() {
-        return accuracy;
-    }
-
-    public Double getAp() {
-        return ap;
+        return this.accuracy;
     }
 
     public Instant getTimeSet() {
-        return timeSet;
+        return this.timeSet;
     }
 
     public BeatMap getBeatMap() {
-        return beatMap;
+        return this.beatMap;
     }
 
     public Long getLeaderboardId() {
-        return leaderboardId;
+        return this.leaderboardId;
     }
 
     public PlayerData getPlayer() {
-        return player;
+        return this.player;
     }
 }

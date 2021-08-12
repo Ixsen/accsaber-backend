@@ -222,12 +222,40 @@
   <changeSet author="ixsen (generated)" id="1627220651596-8">
     <dropDefaultValue columnDataType="varchar(255)" columnName="song" tableName="beat_map"/>
   </changeSet>
+  <changeSet author="ixsen (generated)" id="1628755167476-1">
+    <dropForeignKeyConstraint baseTableName="score_data_aud" constraintName="FKl60xl7botsssqywm7m40e6ub4"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628755167476-3">
+    <dropTable tableName="revinfo"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628755167476-4">
+    <dropTable tableName="score_data_aud"/>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628768190055-1">
+    <addColumn tableName="category">
+      <column name="category_display_name" type="varchar(255)"/>
+    </addColumn>
+  </changeSet>
+  <changeSet author="ixsen (generated)" id="1628768190055-2">
+    <addColumn tableName="category">
+      <column name="counts_towards_overall" type="bit">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+
+  <changeSet author="ixsen (generated)" id="1628351571753-2">
+    <addColumn tableName="score_data">
+      <column name="weighted_ap" type="double precision"/>
+    </addColumn>
+  </changeSet>
 
   <changeSet id="create-category-stats-and-score-views" author="ixsen">
     <createView fullDefinition="false" remarks="VIEW" viewName="acc_saber_score">
       select s.score_id AS score_id,
       s.accuracy AS accuracy,
       s.ap AS ap,
+      s.weighted_ap AS weighted_ap,
       s.is_ranked_score AS is_ranked_score,
       s.map_leaderboard_id AS map_leaderboard_id,
       s.rank_when_scores_set AS rank_when_scores_set,
@@ -269,7 +297,8 @@
       sum(ranked_plays) as ranked_plays
       from player_category_stats pcs
       join player_data pd on pcs.player_id = pd.player_id
-      where pcs.ranked_plays != 0
+      join category ct on pcs.category_id = ct.id
+      where pcs.ranked_plays != 0 and ct.counts_towards_overall
       group by player_id) player_stats
     </createView>
   </changeSet>
